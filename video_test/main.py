@@ -12,10 +12,10 @@ from ultralytics import YOLO
 # vehicle_ids = [3, 4, 5, 9]  # car, van, truck, motor
 
 
-# total_slots = 77
+# total_slots = 83
 # partition1_slots = 41
 # partition2_slots = 25
-# partition3_slots = 11
+# partition3_slots = 17
 
 # # partition1_available = partition1_slots - partition1_occupied_slots
 # # partition2_available = partition2_slots - partition2_occupied_slots
