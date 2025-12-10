@@ -23,8 +23,6 @@ videos/
 
 # debug frames
 debug/
-*.png
-*.jpg
 
 # cache
 *.cache/
