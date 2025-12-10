@@ -45,8 +45,14 @@ PARTITION_SLOTS = {
 
 DISABLED_SLOTS = {45, 46, 65, 66}
 
-DEBUG_FRAME = None  # 시각화 프레임 저장
-
+# =====================================================
+# 디버그 프레임을 Partition별로 따로 저장
+# =====================================================
+DEBUG_FRAMES = {
+    "P1": None,
+    "P2": None,
+    "P3": None,
+}
 
 # =====================================================
 # JSON 로더
@@ -85,21 +91,16 @@ def draw_debug_frame(frame_small, scaled_rects, boxes, occupied_slots):
         color = (0, 255, 0)
         if slot in occupied_slots:
             color = (0, 0, 255)
-
         cv2.rectangle(debug, (int(sx1), int(sy1)), (int(sx2), int(sy2)), color, 2)
         cv2.putText(debug, str(slot), (int(sx1), int(sy1) - 3),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-
     return debug
-
 
 
 # =====================================================
 # 점유 판단 함수
 # =====================================================
-def detect_slot_occupied(frame, center_slots):
-    global DEBUG_FRAME
-
+def detect_slot_occupied(frame, center_slots, part_name):
     if frame is None:
         return set()
 
@@ -122,7 +123,7 @@ def detect_slot_occupied(frame, center_slots):
 
     occupied = set()
 
-    # 중심 기준 점유 판단
+    # 중심점 기준 점유 판단
     for x1, y1, x2, y2 in boxes:
         cx = (x1 + x2) / 2
         cy = (y1 + y2) / 2
@@ -132,9 +133,9 @@ def detect_slot_occupied(frame, center_slots):
                 occupied.add(slot)
                 break
 
-    # 디버깅 시각화 업데이트
+    # ---- Partition별 Debug Frame 저장 ----
     if DEBUG:
-        DEBUG_FRAME = draw_debug_frame(frame_small, scaled, boxes, occupied)
+        DEBUG_FRAMES[part_name] = draw_debug_frame(frame_small, scaled, boxes, occupied)
 
     return occupied
 
@@ -151,7 +152,7 @@ status_cache = {
 
 
 # =====================================================
-# 백그라운드 YOLO 워커
+# 백그라운드 YOLO 워커 (멀티 디버그 창 적용)
 # =====================================================
 def slot_worker():
     while True:
@@ -163,13 +164,11 @@ def slot_worker():
                 continue
 
             if name == "P1":
-                occ = detect_slot_occupied(frame, CENTER_P1)
-
+                occ = detect_slot_occupied(frame, CENTER_P1, "P1")
             elif name == "P2":
-                occ = detect_slot_occupied(frame, CENTER_P2)
-
+                occ = detect_slot_occupied(frame, CENTER_P2, "P2")
             elif name == "P3":
-                occ = detect_slot_occupied(frame, CENTER_P3_2)
+                occ = detect_slot_occupied(frame, CENTER_P3_2, "P3")
 
             total = PARTITION_SLOTS[name]
             occupied = sorted(list(occ))
@@ -185,17 +184,20 @@ def slot_worker():
 
         status_cache["last_update"] = time.time()
 
-        # ---- 디버그 화면 표시 ----
-        if DEBUG and DEBUG_FRAME is not None:
-            cv2.imshow("YOLO Debug", DEBUG_FRAME)
+        # ----- 각 파티션마다 디버그 창 따로 띄우기 -----
+        if DEBUG:
+            for part in ["P1", "P2", "P3"]:
+                frame_debug = DEBUG_FRAMES[part]
+                if frame_debug is not None:
+                    cv2.imshow(f"YOLO Debug - {part}", frame_debug)
+
             cv2.waitKey(1)
 
         time.sleep(0.05)
 
 
-
 # =====================================================
-# 서버 시작시 비디오 로드
+# 서버 시작 시 비디오 로드
 # =====================================================
 def init_server():
     for name, path in VIDEO_INFO:
@@ -209,7 +211,6 @@ def init_server():
     th = threading.Thread(target=slot_worker, daemon=True)
     th.start()
 
-
 init_server()
 
 
@@ -219,4 +220,3 @@ init_server()
 @app.get("/status")
 def get_status():
     return status_cache
-
