@@ -2,6 +2,7 @@
 vieo_test폴더 -> uvicorn server:app --host 0.0.0.0 --port 8000
 
 # 결과 형식
+'''
 {
   "P1": {
     "occupied_slots": [10, 11, 12, 13, 16, 27],
@@ -23,4 +24,5 @@ vieo_test폴더 -> uvicorn server:app --host 0.0.0.0 --port 8000
   },
   "last_update": 1733811532.512312
 }
+'''
 
